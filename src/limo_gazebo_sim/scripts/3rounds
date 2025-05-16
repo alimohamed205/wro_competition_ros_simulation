@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+import rospy
+import cv2
+import numpy as np
+from sensor_msgs.msg import Image, Imu
+from geometry_msgs.msg import Twist
+from cv_bridge import CvBridge
+from math import radians, degrees, atan2
+
+class LineNavigator:
+    def __init__(self):
+        rospy.init_node('line_navigator', anonymous=True)
+
+        # ROS Subscribers and Publishers
+        self.image_sub = rospy.Subscriber('/limo/rgb/image_raw', Image, self.image_callback)
+        self.imu_sub = rospy.Subscriber('/limo/imu', Imu, self.imu_callback)
+        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+
+        # OpenCV and Twist objects
+        self.bridge = CvBridge()
+        self.twist = Twist()
+
+        # HSV Color Ranges for detection
+        self.orange_lower = np.array([5, 100, 100])
+        self.orange_upper = np.array([15, 255, 255])
+        self.blue_lower = np.array([100, 150, 50])
+        self.blue_upper = np.array([130, 255, 255])
+
+        # State Variables
+        self.detecting_orange = True
+        self.turning = False
+        self.current_yaw = None
+        self.initial_yaw = None
+        self.target_yaw = None
+
+        # PID Parameters for Angular Control
+        self.kp = 0.03
+        self.ki = 0.0005
+        self.kd = 0.01
+        self.previous_error = 0
+        self.integral = 0
+
+        # Angular Precision
+        self.yaw_margin = 1.0  # Allowable angular error (degrees)
+
+        # Detection Counters
+        self.orange_count = 0
+        self.blue_count = 0
+        self.total_turns = 0
+        self.max_turns = 3  # Stop after 3 complete turns
+
+        # Flags
+        self.orange_detected_flag = False
+        self.blue_detected_flag = False
+
+        rospy.sleep(1)
+        self.set_initial_yaw()  # Set initial yaw before starting
+
+    def imu_callback(self, msg):
+        # Update current yaw from IMU
+        qx, qy, qz, qw = msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w
+        siny_cosp = 2 * (qw * qz + qx * qy)
+        cosy_cosp = 1 - 2 * (qy ** 2 + qz ** 2)
+        self.current_yaw = degrees(atan2(siny_cosp, cosy_cosp))
+        if self.current_yaw < 0:
+            self.current_yaw += 360
+
+    def set_initial_yaw(self):
+        """Set the initial yaw for the robot."""
+        rospy.loginfo("Setting initial yaw...")
+        while self.current_yaw is None:
+            rospy.sleep(0.1)
+        self.initial_yaw = self.current_yaw
+        rospy.loginfo(f"Initial Yaw set to: {self.initial_yaw}°")
+        self.move_straight()  # Start moving forward
+
+    def move_straight(self):
+        """Move straight at a constant speed."""
+        rospy.loginfo("Moving straight...")
+        self.twist.linear.x = 0.2
+        self.twist.angular.z = 0.0
+        self.cmd_vel_pub.publish(self.twist)
+        
+  def steer_smoothly(self):
+        """Perform a smooth steering maneuver."""
+        rospy.loginfo("Steering smoothly...")
+        self.twist.linear.x = 0.2
+        self.twist.angular.z = 0.3
+        self.cmd_vel_pub.publish(self.twist)
+        rospy.sleep(2)  # Duration for steering
+        rospy.loginfo("Steering completed.")
+       # self.move_straight()      
+
+    def start_turn(self):
+        """Initialize a 90-degree turn."""
+        if self.current_yaw is not None:
+            self.target_yaw = (self.initial_yaw + 90) % 360  # Wrap target yaw to 0°-360°
+            self.turning = True
+            self.previous_error = 0
+            self.integral = 0
+            rospy.loginfo(f"Target Yaw: {self.target_yaw}°")
+
+    def execute_turn(self):
+        """Perform a precise turn using PID control."""
+        if self.current_yaw is None or self.target_yaw is None:
+            return
+
+        # Calculate yaw error
+        error = self.target_yaw - self.current_yaw
+        if error > 180:
+            error -= 360
+        elif error < -180:
+            error += 360
+
+        # PID Control
+        self.integral += error
+        derivative = error - self.previous_error
+        angular_z = self.kp * error + self.ki * self.integral + self.kd * derivative
+        angular_z = np.clip(angular_z, -0.4, 0.4)
+
+        # Publish Twist
+        self.twist.linear.x = 0.2
+        self.twist.angular.z = angular_z
+        self.cmd_vel_pub.publish(self.twist)
+
+        # Check Turn Completion
+        if abs(error) < self.yaw_margin:
+            rospy.loginfo(f"Turn completed. Current Yaw: {self.current_yaw}°")
+            self.turning = False
+            self.initial_yaw = self.current_yaw  # Update initial yaw for next turn
+            self.move_straight()  # Continue moving forward
+
+        self.previous_error = error
+
+
+    def stop_robot(self):
+        """Stop the robot completely."""
+        rospy.loginfo("Stopping the robot...")
+        self.twist.linear.x = 0.0
+        self.twist.angular.z = 0.0
+        self.cmd_vel_pub.publish(self.twist)
+
+    def image_callback(self, msg):
+        # Convert ROS Image to OpenCV
+        cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+
+        # Define ROI
+        height, width, _ = cv_image.shape
+        roi = hsv_image[400:500, 0:width]  # Example ROI from 400 to 500 px height
+
+        # Mask for colors
+        orange_mask = cv2.inRange(roi, self.orange_lower, self.orange_upper)
+        blue_mask = cv2.inRange(roi, self.blue_lower, self.blue_upper)
+
+        # Combine for original mask
+        original_mask = cv2.bitwise_or(orange_mask, blue_mask)
+
+        # Detection Flags
+        orange_detected = cv2.countNonZero(orange_mask) > 500
+        blue_detected = cv2.countNonZero(blue_mask) > 500
+
+        # Update Counters
+        if not self.turning:
+            if orange_detected and not self.orange_detected_flag:
+                self.orange_count += 1
+                rospy.loginfo(f"Orange Count: {self.orange_count}")
+
+                # After detecting orange, make a steering (turn)
+                rospy.loginfo("Orange detected: Making a steering...")
+                self.steer_smoothly()
+                self.orange_detected_flag = True  # Set flag to prevent re-detection of orange
+
+            elif not orange_detected:
+                self.orange_detected_flag = False  # Reset flag if no orange detected
+
+            if blue_detected and not self.blue_detected_flag:
+                self.blue_count += 1
+                rospy.loginfo(f"Blue Count: {self.blue_count}")
+
+                # After detecting blue, make a 90-degree turn
+                rospy.loginfo("Blue detected: Making a turn...")
+                self.start_turn()  # Can be combined with the previous `start_turn()` if needed
+                self.blue_detected_flag = True  # Set flag to prevent re-detection of blue
+
+            elif not blue_detected:
+                self.blue_detected_flag = False  # Reset flag if no blue detected
+
+            # Keep moving straight if no turning
+            
+        elif self.turning:
+            self.execute_turn()
+
+        # Visualization (Optional)
+        cv2.imshow("Original Mask", original_mask)
+        cv2.imshow("Orange Mask", orange_mask)
+        cv2.imshow("Blue Mask", blue_mask)
+        cv2.waitKey(1)
+
+    def run(self):
+        rospy.loginfo("Line navigator started...")
+        rospy.spin()
+
+if __name__ == '__main__':
+    try:
+        navigator = LineNavigator()
+        navigator.run()
+    except rospy.ROSInterruptException:
+        pass
+

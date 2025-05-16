@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- EKF node for localization -->
+    <node name="ekf_localization" pkg="robot_localization" type="ekf_localization_node" output="screen">
+        <!-- Load EKF parameters from a YAML config file -->
+        <rosparam command="load" file="$(find my_robot_localization)/config/ekf_config.yaml" />
+
+
+        <!-- Set additional parameters -->
+        <param name="sensor_timeout" value="1.0"/>
+        <param name="two_d_mode" value="true"/>
+
+
+
+        <param name="transform_timeout" value="0.0"/>
+
+        <!-- Remap input topics for IMU and odometry -->
+        <remap from="/odom" to="/odom" />
+        <remap from="/imu/data" to="/limo/imu"/>
+    </node>
+</launch>
+

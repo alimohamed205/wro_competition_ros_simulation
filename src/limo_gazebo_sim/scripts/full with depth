@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+
+import rospy
+import cv2
+import numpy as np
+from cv_bridge import CvBridge
+from sensor_msgs.msg import Image, PointCloud2
+from geometry_msgs.msg import Twist
+import sensor_msgs.point_cloud2 as pc2
+import matplotlib.pyplot as plt
+
+
+class LimoController:
+    def __init__(self):
+        rospy.init_node("limo_controller", anonymous=True)
+
+        # Publishers and Subscribers
+        self.cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
+        rospy.Subscriber("/limo/rgb/image_raw", Image, self.image_callback)
+        rospy.Subscriber("/limo/depth/points", PointCloud2, self.pointcloud_callback)
+
+        # Control parameters
+        self.bridge = CvBridge()
+        self.twist = Twist()
+        self.threshold_distance = 1.0  # Meters
+        self.min_distance = float("inf")  # Initialize to a large value
+
+        # HSV color ranges for red, green, orange, and blue
+        self.red_lower1 = np.array([0, 150, 100])
+        self.red_upper1 = np.array([10, 255, 255])
+        self.red_lower2 = np.array([170, 150, 100])
+        self.red_upper2 = np.array([180, 255, 255])
+        self.green_lower = np.array([40, 100, 50])
+        self.green_upper = np.array([80, 255, 255])
+        self.orange_lower = np.array([5, 100, 100])
+        self.orange_upper = np.array([15, 255, 255])
+        self.blue_lower = np.array([100, 150, 50])
+        self.blue_upper = np.array([130, 255, 255])
+        
+        # State Variables
+        self.detecting_orange = True
+        self.turning = False
+        self.current_yaw = None
+        self.initial_yaw = None
+        self.target_yaw = None
+        
+        # Flags
+        self.orange_detected_flag = False
+        self.blue_detected_flag = False
+
+        rospy.loginfo("Limo Controller Node Initialized")
+
+    def pointcloud_callback(self, msg):
+        """Process the point cloud to find the closest object."""
+        self.min_distance = float("inf")  # Reset minimum distance
+        
+        for point in pc2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
+            distance = np.sqrt(point[0] ** 2 + point[1] ** 2 + point[2] ** 2)
+            if distance < self.min_distance:
+                self.min_distance = distance
+
+        rospy.loginfo(f"Minimum distance: {self.min_distance:.2f} meters")
+
+    def image_callback(self, msg):
+        """Handle RGB image and make decisions."""
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+            hsv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+
+            # Define larger ROI (Region of Interest)
+            height, width, _ = cv_image.shape
+            roi = hsv_image[200:600, :]  # Adjust ROI based on your environment
+
+            # Red detection (two ranges combined)
+            red_mask1 = cv2.inRange(roi, self.red_lower1, self.red_upper1)
+            red_mask2 = cv2.inRange(roi, self.red_lower2, self.red_upper2)
+            red_mask = cv2.bitwise_or(red_mask1, red_mask2)
+            orange_mask = cv2.inRange(roi, self.orange_lower, self.orange_upper)
+            blue_mask = cv2.inRange(roi, self.blue_lower, self.blue_upper)
+
+            # Green detection
+            green_mask = cv2.inRange(roi, self.green_lower, self.green_upper)
+
+            # Visualize ROI and Red Mask for debugging
+            cv2.imshow("ROI", cv_image[200:600, :])  # Visualize cropped region
+            cv2.imshow("Red Mask", red_mask)  # Visualize red detection
+            cv2.waitKey(1)
+
+            # Object handling logic (priority check)
+            if self.min_distance < self.threshold_distance:
+                if np.count_nonzero(red_mask) > 500:
+                    rospy.loginfo("Red object detected within threshold. Steering left.")
+                    self.steer_left()
+                elif np.count_nonzero(green_mask) > 500:
+                    rospy.loginfo("Green object detected within threshold. Steering right.")
+                    self.steer_right()
+                else:
+                    rospy.loginfo("Object within threshold, but no specific color detected. Stopping.")
+                    self.stop()
+            else:
+                # No objects near, check line colors (after object handling)
+                if np.count_nonzero(red_mask) > 500:
+                    rospy.loginfo("Red object detected in the field of view. Steering left.")
+                    self.steer_left()  # Take action on the red object
+                elif np.count_nonzero(orange_mask) > 500:
+                    rospy.loginfo("Orange line detected. Moving straight.")
+                    self.move_straight()  # Follow orange line
+                elif np.count_nonzero(blue_mask) > 500:
+                    rospy.loginfo("Blue line detected. Moving straight.")
+                    self.move_straight()  # Follow blue line
+                else:
+                    rospy.loginfo("No specific object or line detected. Moving straight.")
+                    self.move_straight()
+
+        except Exception as e:
+            rospy.logerr(f"Image callback error: {e}")
+
+    def steer_left(self):
+        """Turn the robot left."""
+        self.twist.linear.x = 0.1
+        self.twist.angular.z = 0.5
+        self.cmd_vel_pub.publish(self.twist)
+
+    def steer_right(self):
+        """Turn the robot right."""
+        self.twist.linear.x = 0.1
+        self.twist.angular.z = -0.5
+        self.cmd_vel_pub.publish(self.twist)
+
+    def move_straight(self):
+        """Move the robot straight."""
+        self.twist.linear.x = 0.2
+        self.twist.angular.z = 0.0
+        self.cmd_vel_pub.publish(self.twist)
+
+    def stop(self):
+        """Stop the robot."""
+        self.twist.linear.x = 0.0
+        self.twist.angular.z = 0.0
+        self.cmd_vel_pub.publish(self.twist)
+
+
+if __name__ == "__main__":
+    try:
+        controller = LimoController()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
+    finally:
+        cv2.destroyAllWindows()
+

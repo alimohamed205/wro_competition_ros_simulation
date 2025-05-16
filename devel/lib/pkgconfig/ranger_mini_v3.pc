@@ -1,0 +1,8 @@
+prefix=/home/luka/catkin_ws/devel
+
+Name: ranger_mini_v3
+Description: Description of ranger_mini_v3
+Version: 1.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

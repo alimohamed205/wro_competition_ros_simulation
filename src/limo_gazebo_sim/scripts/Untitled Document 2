@@ -1,0 +1,44 @@
+# depth cam 
+#!/usr/bin/env python3
+
+import rospy
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+import numpy as np
+
+class DepthCameraChecker:
+    def __init__(self):
+        rospy.init_node('depth_camera_checker', anonymous=True)
+        self.bridge = CvBridge()
+
+        # Subscriber to depth image topic
+        self.depth_sub = rospy.Subscriber('/limo/depth/image_raw', Image, self.depth_callback)
+
+        rospy.loginfo("Subscribed to depth image topic")
+
+    def depth_callback(self, msg):
+        """Callback to print depth image information"""
+        try:
+            # Convert the ROS Image message to a numpy array
+            depth_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='16UC1')  # 16-bit unsigned single-channel image
+            rospy.loginfo(f"Received depth image with size: {depth_image.shape}")
+            
+            # Print some sample depth values
+            # Here, we're printing a few pixels' values to check
+            sample_depth = depth_image[100, 100]  # Example: check pixel at (100,100)
+            rospy.loginfo(f"Depth at (100, 100): {sample_depth} (in millimeters)")
+
+            # Optionally, show the depth image using OpenCV
+            # cv2.imshow("Depth Image", depth_image)
+            # cv2.waitKey(1)
+            
+        except Exception as e:
+            rospy.logerr(f"Error in depth_callback: {e}")
+
+if __name__ == '__main__':
+    try:
+        checker = DepthCameraChecker()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
+

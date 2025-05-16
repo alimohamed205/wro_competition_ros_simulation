@@ -1,0 +1,8 @@
+prefix=/home/luka/catkin_ws/devel
+
+Name: ranger_mini_v3_gazebo
+Description: Description of ranger_mini_v3_gazebo
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

@@ -1,0 +1,8 @@
+prefix=/home/luka/catkin_ws/devel
+
+Name: scout_gazebo_sim
+Description: Description of scout_gazebo_sim
+Version: 0.0.1
+Cflags: -I/home/luka/catkin_ws/src/ugv_sim/scout/scout_gazebo_sim/include
+Libs: -L${prefix}/lib 
+Requires: roscpp sensor_msgs

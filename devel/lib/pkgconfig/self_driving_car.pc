@@ -1,0 +1,8 @@
+prefix=/home/luka/catkin_ws/devel
+
+Name: self_driving_car
+Description: Description of self_driving_car
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

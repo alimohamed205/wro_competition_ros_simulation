@@ -1,0 +1,38 @@
+# EKF Configuration for sensor fusion
+
+# Frame settings
+world_frame: odom          # This is the global frame (usually 'odom' or 'map')
+odom_frame: odom           # This is the odometry frame
+base_link_frame: base_link # This is the robot's base link (where sensors are mounted)
+frequency: 50
+two_d_mode: true
+publish_tf: false
+
+# Odometry Configuration
+odom0: /odom               # Odometry topic (e.g., wheel encoders)
+odom0_config: [false, false, false,
+               false, false, true,  # Include theta (orientation)
+               true, true, false,   # vx, vy
+               false, false, true,
+               false, false, false]
+odom0_queue_size: 10
+
+# IMU Configuration
+imu0: /limo/imu            # IMU topic
+imu0_config: [false, false, false,
+              false, false, true,   # Yaw
+              false, false, false,
+              false, false, true,   # Angular velocity
+              true, false, false]   # Linear acceleration
+imu0_differential: false
+imu0_queue_size: 10
+
+# Initial state (optional)
+initial_state:             # Ensures no None values are passed
+  x: 0.0
+  y: 0.0
+  yaw: 0.0
+
+# Constant process noise covariance matrix (tuned values)
+# Constant process noise covariance matrix (tuned values)
+

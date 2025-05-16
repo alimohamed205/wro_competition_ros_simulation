@@ -1,0 +1,2 @@
+limo_description:limo_gazebo_sim:my_robot_localization:robot:robot_description
+-DCATKIN_DEVEL_PREFIX=/home/luka/catkin_ws/devel -DCMAKE_INSTALL_PREFIX=/home/luka/catkin_ws/install -G Unix Makefiles

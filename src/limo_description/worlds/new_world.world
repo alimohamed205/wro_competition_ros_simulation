@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="default">
+    <!-- Sky, lighting, and ground plane -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Add the textured box model -->
+    <model name="textured_box">
+      <static>true</static>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>1 1 1</size> <!-- Box dimensions -->
+            </box>
+          </geometry>
+          <material>
+            <script>
+             <uri>file://$(find ugv_sim)/limo/limo_description/img/arena_texture.jpg</uri>
+
+              <name>arenaTexture</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>
+

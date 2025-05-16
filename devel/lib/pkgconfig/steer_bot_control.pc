@@ -1,0 +1,8 @@
+prefix=/home/luka/catkin_ws/devel
+
+Name: steer_bot_control
+Description: Description of steer_bot_control
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

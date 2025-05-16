@@ -1,0 +1,8 @@
+prefix=/home/luka/catkin_ws/install
+
+Name: robot_testing_node
+Description: Description of robot_testing_node
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

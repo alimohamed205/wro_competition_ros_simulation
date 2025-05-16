@@ -1,0 +1,8 @@
+prefix=/home/luka/catkin_ws/install
+
+Name: my_robot_localization
+Description: Description of my_robot_localization
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

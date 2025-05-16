@@ -1,0 +1,8 @@
+prefix=/home/luka/catkin_ws/devel
+
+Name: urdf_geometry_parser
+Description: Description of urdf_geometry_parser
+Version: 0.1.0
+Cflags: -I/home/luka/catkin_ws/src/ugv_sim/ranger_mini/urdf_geometry_parser/include
+Libs: -L${prefix}/lib -lurdf_geometry_parser
+Requires: roscpp urdf

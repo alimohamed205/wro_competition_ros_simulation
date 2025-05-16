@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+
+     <arg name="world" default="$(find robot_description)/worlds/world1.world"/>  
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+         <arg name="world_name" value="$(arg world)"/>  
+        <arg name="paused" value="false"/>
+        <arg name="use_sim_time" value="true"/>
+        <arg name="gui" value="true"/>
+        <arg name="recording" value="false"/>
+        <arg name="debug" value="false"/>
+    </include> 
+
+    <!-- Load URDF model into Gazebo -->
+    <!-- <param name="robot_description" textfile="$(find final)/urdf/assem4.urdf" /> -->
+       <param name="robot_description" textfile="$(find robot_description)/urdf/robot.urdf" />    
+
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen"
+        args="-urdf -param robot_description -model robot_description"/>
+
+    <!-- Launch GMapping SLAM node -->
+    
+    
+    <!-- Start the teleop twist keyboard node -->
+    
+    <!-- Start the gazebo velocity subscriber node -->
+   
+
+</launch>
+
