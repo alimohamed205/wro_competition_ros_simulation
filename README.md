@@ -10,11 +10,18 @@ The goal: enable a robot to autonomously detect orange and blue lines, perform t
 ## 📸 Demo
 
 ### Simulation in Gazebo
-![Arena Screenshot 1](docs/images/arena1.jpeg)  
-![Arena Screenshot 2](docs/images/arena2.jpeg)
+<p align="center">
+  <img src="docs/images/arena1.jpeg" alt="Arena Screenshot 1" width="45%"/>
+  <img src="docs/images/arena2.jpeg" alt="Arena Screenshot 2" width="45%"/>
+</p>
 
 ### Robot in Action
-![Project Demo](docs/images/demo.gif)
+<p align="center">
+  <img src="docs/images/demo.gif" alt="Project Demo" width="70%"/>
+</p>
+
+### 🎥 Full Video
+👉 [Watch the full demo video](docs/videos/project.mp4)
 
 ---
 
