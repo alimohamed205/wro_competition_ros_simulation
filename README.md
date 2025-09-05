@@ -18,11 +18,12 @@ The goal: enable a robot to autonomously detect orange and blue lines, perform t
 ### Robot in Action
 <p align="center">
   <img src="docs/images/demo.gif" alt="Project Demo" width="70%"/>
-  [Watch the gif demo video](docs/images/demo.gif)
+  
 </p>
 
-### 🎥 Full Video
+### 🎥 Full Video and demo
 👉 [Watch the full demo video](docs/videos/project.mp4)
+    [Watch the gif demo video](docs/images/demo.gif)
 
 ---
 
