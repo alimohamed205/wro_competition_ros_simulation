@@ -40,13 +40,5 @@ The goal: enable a robot to autonomously detect orange and blue lines, perform t
 
 ## 📂 Project Structure
 
-wro_competition_ros_simulation/
-├── launch/ # Launch files for simulation
-├── models/ # Custom Gazebo models
-├── src/ # Source code (Python + C++)
-├── worlds/ # WRO arena world
-├── params/ # Navigation configs (costmaps, planners)
-└── docs/
-├── images/ # Screenshots + GIF
-└── videos/ # Raw demo videos
+
 
